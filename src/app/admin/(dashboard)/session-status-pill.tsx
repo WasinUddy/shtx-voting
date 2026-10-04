@@ -58,9 +58,14 @@ export function SessionStatusPill({
         const formData = new FormData();
         formData.set("id", String(sessionId));
         formData.set("status", next);
-        startTransition(async () => {
-          const patches = await updateSessionStatus(formData);
-          onPatched(patches);
+        startTransition(() => {
+          void updateSessionStatus(formData)
+            .then((patches) => {
+              onPatched(patches);
+            })
+            .catch((error) => {
+              console.error("Failed to update session status:", error);
+            });
         });
       }}
       className="shrink-0 rounded-full disabled:opacity-60"
