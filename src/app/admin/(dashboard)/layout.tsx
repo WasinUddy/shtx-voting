@@ -19,7 +19,7 @@ export default async function AdminDashboardLayout({
     <div className="flex min-h-full flex-1 flex-col">
       <header className="border-b border-black/[.08] px-6 py-3 dark:border-white/[.145]">
         <Group justify="space-between">
-          <Title order={3}>Admin</Title>
+          <Title order={3}>Admin Session Management</Title>
           <form action={logout}>
             <Button type="submit" variant="default">
               Log out
