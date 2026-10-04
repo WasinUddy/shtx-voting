@@ -6,7 +6,7 @@ import type { SessionStatus } from "@/lib/session-status";
 import { formatSessionUpdatedAt } from "@/lib/format-session-time";
 import { SessionStatusActions } from "./session-status-actions";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 export type SessionListItem = {
   id: number;
@@ -42,10 +42,6 @@ function applyPatches(
 
 export function SessionsList({ sessions: initialSessions }: SessionsListProps) {
   const [sessions, setSessions] = useState(initialSessions);
-
-  useEffect(() => {
-    setSessions(initialSessions);
-  }, [initialSessions]);
 
   function handlePatched(patches: SessionRowPatch[]) {
     if (patches.length === 0) {
@@ -93,7 +89,10 @@ export function SessionsList({ sessions: initialSessions }: SessionsListProps) {
           </span>
           <span
             className="xp-row-actions"
-            onClick={(e) => e.preventDefault()}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
             onKeyDown={(e) => e.stopPropagation()}
           >
             <SessionStatusActions

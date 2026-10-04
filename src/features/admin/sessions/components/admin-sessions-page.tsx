@@ -29,7 +29,10 @@ export function AdminSessionsPage({ sessions, loadFailed }: AdminSessionsPagePro
       ) : null}
 
       {!loadFailed && sessions.length > 0 ? (
-        <SessionsList sessions={sessions} />
+        <SessionsList
+          key={sessions.map((session) => session.id).join(",")}
+          sessions={sessions}
+        />
       ) : null}
 
       <p className="xp-help-text">
