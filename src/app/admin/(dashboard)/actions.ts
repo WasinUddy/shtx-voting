@@ -8,6 +8,10 @@ import {
   listInProgressSessions,
   updateSessionStatus as updateSessionStatusInDb,
 } from "@/services/sessions";
+import {
+  publishAudienceState,
+  publishSessionScores,
+} from "@/lib/live-events";
 import type { SessionRowPatch } from "./session-row-patch";
 import { revalidatePath } from "next/cache";
 export async function createSession(
@@ -89,6 +93,14 @@ export async function updateSessionStatus(
 
     revalidatePath("/admin");
     revalidatePath(`/admin/${id}`);
+
+    await publishAudienceState();
+    await publishSessionScores(id);
+    for (const prev of previouslyInProgress) {
+      if (prev.id != null && prev.id !== id) {
+        await publishSessionScores(prev.id);
+      }
+    }
 
     return patches;
   } catch (error) {

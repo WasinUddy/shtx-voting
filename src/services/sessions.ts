@@ -16,6 +16,16 @@ export async function listInProgressSessions(): Promise<Session[]> {
     .where(eq(sessions.status, "IN_PROGRESS"));
 }
 
+export async function getInProgressSession(): Promise<Session | undefined> {
+  const rows = await db
+    .select()
+    .from(sessions)
+    .where(eq(sessions.status, "IN_PROGRESS"))
+    .orderBy(desc(sessions.updatedAt))
+    .limit(1);
+  return rows[0];
+}
+
 export async function getSessionById(id: number): Promise<Session | undefined> {
   const rows = await db
     .select()

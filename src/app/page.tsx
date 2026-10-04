@@ -1,7 +1,12 @@
-import Image from "next/image";
+import { getLiveAudienceState } from "@/lib/audience-state";
+import { VotingBoard } from "./voting-board";
 
-export default function Home() {
+export default async function Home() {
+  const initialAudience = await getLiveAudienceState();
+
   return (
-      <div className="page"></div>
+    <main className="min-h-full flex flex-col">
+      <VotingBoard initialAudience={initialAudience} />
+    </main>
   );
 }
