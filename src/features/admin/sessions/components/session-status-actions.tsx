@@ -7,6 +7,7 @@ import {
 import type { SessionRowPatch } from "@/features/admin/sessions/types";
 import { IconRemove } from "@/features/xp/icons";
 import { XpButton } from "@/features/xp/window";
+import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import {
   deleteSession,
@@ -28,6 +29,7 @@ export function SessionStatusActions({
   onPatched,
   onDeleted,
 }: SessionStatusActionsProps) {
+  const router = useRouter();
   const [pending, startTransition] = useTransition();
 
   if (status === "COMPLETED") {
@@ -44,6 +46,7 @@ export function SessionStatusActions({
               return;
             }
             onDeleted(sessionId);
+            router.refresh();
           })
           .catch((error) => {
             console.error("Failed to delete session:", error);
