@@ -3,7 +3,8 @@ import { listTeamsBySession } from "@/services/teams";
 import { Badge, Group, Paper, Stack, Text, Title } from "@mantine/core";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ActiveTeamPicker } from "./active-team-picker";
+import { aggregateTeamScores } from "@/services/votes";
+import { InProgressTeams } from "./in-progress-teams";
 import { CreateTeamForm } from "./create-team-form";
 import { SessionDetailStatus } from "./session-detail-status";
 import { TeamList } from "./team-list";
@@ -25,6 +26,8 @@ export default async function SessionDetailPage({
   }
 
   const teams = await listTeamsBySession(id);
+  const initialScores =
+    session.status === "IN_PROGRESS" ? await aggregateTeamScores(id) : [];
   const teamRows = teams.flatMap((team) =>
     team.id == null
       ? []
@@ -51,10 +54,11 @@ export default async function SessionDetailPage({
             {session.status === "NOT_STARTED" ? (
               <TeamList sessionId={id} teams={teamRows} />
             ) : session.status === "IN_PROGRESS" ? (
-              <ActiveTeamPicker
+              <InProgressTeams
                 sessionId={id}
                 teams={teamRows}
                 activeTeamId={session.activeTeamId}
+                initialScores={initialScores}
               />
             ) : teamRows.length === 0 ? (
               <Text c="dimmed" size="sm">No teams yet.</Text>

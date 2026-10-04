@@ -9,6 +9,7 @@ import {
   renameTeam as renameTeamInDb,
   reorderTeams as reorderTeamsInDb,
 } from "@/services/teams";
+import { publishAudienceAndScores } from "@/lib/live-events";
 import { revalidatePath } from "next/cache";
 
 function revalidateSessionDetail(sessionId: number) {
@@ -210,4 +211,5 @@ export async function setActiveTeam(formData: FormData): Promise<void> {
 
   await setActiveTeamInDb(sessionId, teamId);
   revalidateSessionDetail(sessionId);
+  await publishAudienceAndScores(sessionId);
 }
