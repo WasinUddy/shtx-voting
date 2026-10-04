@@ -4,5 +4,6 @@
     <file url="file://$PROJECT_DIR$/migrations/001_create_sessions_table.sql" value="b8c86476-39c9-4db0-9d41-1465a8e31e4a" />
     <file url="file://$PROJECT_DIR$/migrations/002_create_teams_table.sql" value="b8c86476-39c9-4db0-9d41-1465a8e31e4a" />
     <file url="file://$PROJECT_DIR$/migrations/003_create_votes_table.sql" value="b8c86476-39c9-4db0-9d41-1465a8e31e4a" />
+    <file url="file://$PROJECT_DIR$/migrations/004_complete_other_in_progress_sessions_trigger.sql" value="b8c86476-39c9-4db0-9d41-1465a8e31e4a" />
   </component>
 </project>
