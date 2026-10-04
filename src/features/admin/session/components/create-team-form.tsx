@@ -2,13 +2,18 @@
 
 import { Alert, Button, Group, TextInput } from "@mantine/core";
 import { useActionState } from "react";
-import { createSession } from "./actions";
+import { createTeam } from "@/features/admin/session/actions";
 
-export function CreateSessionForm() {
-  const [error, action, pending] = useActionState(createSession, undefined);
+type CreateTeamFormProps = {
+  sessionId: number;
+};
+
+export function CreateTeamForm({ sessionId }: CreateTeamFormProps) {
+  const [error, action, pending] = useActionState(createTeam, undefined);
 
   return (
     <form action={action}>
+      <input type="hidden" name="sessionId" value={sessionId} />
       <Group align="flex-end" wrap="wrap">
         {error ? (
           <Alert color="red" w="100%">
@@ -17,13 +22,13 @@ export function CreateSessionForm() {
         ) : null}
         <TextInput
           name="name"
-          label="New session"
-          placeholder="Session name"
+          label="Add team"
+          placeholder="Team name"
           required
           style={{ flex: 1, minWidth: 200 }}
         />
         <Button type="submit" loading={pending}>
-          Add session
+          Add team
         </Button>
       </Group>
     </form>

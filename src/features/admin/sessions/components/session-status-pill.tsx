@@ -6,10 +6,10 @@ import {
   nextSessionStatus,
   type SessionStatus,
 } from "@/lib/session-status";
-import type { SessionRowPatch } from "./session-row-patch";
+import type { SessionRowPatch } from "@/features/admin/sessions/types";
 import { Badge, UnstyledButton } from "@mantine/core";
 import { useTransition } from "react";
-import { updateSessionStatus } from "./actions";
+import { updateSessionStatus } from "@/features/admin/sessions/actions";
 
 type SessionStatusPillProps = {
   sessionId: number;

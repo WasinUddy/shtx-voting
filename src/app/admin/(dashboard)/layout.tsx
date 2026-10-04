@@ -1,5 +1,6 @@
 import { auth, signOut } from "@/auth";
-import { Button, Group, Title } from "@mantine/core";
+import { AppWindow } from "@/features/xp/window";
+import { XpMenu, XpMenuItem } from "@/features/xp/menu";
 import { redirect } from "next/navigation";
 
 async function logout() {
@@ -15,19 +16,17 @@ export default async function AdminDashboardLayout({
     redirect("/admin/login");
   }
 
+  const menu = (
+    <XpMenu label="File">
+      <form action={logout} id="admin-logout-form">
+        <XpMenuItem type="submit">Log out</XpMenuItem>
+      </form>
+    </XpMenu>
+  );
+
   return (
-    <div className="flex min-h-full flex-1 flex-col">
-      <header className="border-b border-black/[.08] px-6 py-3 dark:border-white/[.145]">
-        <Group justify="space-between">
-          <Title order={3}>Admin Session Management</Title>
-          <form action={logout}>
-            <Button type="submit" variant="default">
-              Log out
-            </Button>
-          </form>
-        </Group>
-      </header>
-      <div className="flex-1 p-6">{children}</div>
-    </div>
+    <AppWindow title="SHTX Voting Console" menu={menu} className="xp-app--admin">
+      {children}
+    </AppWindow>
   );
 }

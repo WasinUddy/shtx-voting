@@ -1,23 +1,8 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import {
-  ColorSchemeScript,
-  MantineProvider,
-  mantineHtmlProps,
-} from "@mantine/core";
+import { ColorSchemeScript, MantineProvider, mantineHtmlProps } from "@mantine/core";
 import "@mantine/core/styles.css";
-import { theme } from "../theme";
+import { theme } from "@/styles/theme";
 import "./globals.css";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
 
 export const metadata: Metadata = {
   title: "SHTX Voting",
@@ -26,16 +11,12 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html
-      lang="en"
-      {...mantineHtmlProps}
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
+    <html lang="en" {...mantineHtmlProps} className="h-full" data-mantine-color-scheme="light">
       <head>
-        <ColorSchemeScript defaultColorScheme="auto" />
+        <ColorSchemeScript defaultColorScheme="light" forceColorScheme="light" />
       </head>
-      <body className="min-h-full flex flex-col">
-        <MantineProvider theme={theme} defaultColorScheme="auto">
+      <body className="h-full min-h-full flex flex-col">
+        <MantineProvider theme={theme} forceColorScheme="light">
           {children}
         </MantineProvider>
       </body>

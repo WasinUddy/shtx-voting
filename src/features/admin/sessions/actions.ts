@@ -12,7 +12,7 @@ import {
   publishAudienceState,
   publishSessionScores,
 } from "@/lib/live-events";
-import type { SessionRowPatch } from "./session-row-patch";
+import type { SessionRowPatch } from "@/features/admin/sessions/types";
 import { revalidatePath } from "next/cache";
 export async function createSession(
   _prev: string | undefined,

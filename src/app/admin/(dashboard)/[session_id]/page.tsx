@@ -1,13 +1,12 @@
 import { getSessionById } from "@/services/sessions";
 import { listTeamsBySession } from "@/services/teams";
-import { Badge, Group, Paper, Stack, Text, Title } from "@mantine/core";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { aggregateTeamScores } from "@/services/votes";
-import { InProgressTeams } from "./in-progress-teams";
-import { CreateTeamForm } from "./create-team-form";
-import { SessionDetailStatus } from "./session-detail-status";
-import { TeamList } from "./team-list";
+import { CompletedTeams } from "@/features/admin/session/components/completed-teams";
+import { InProgressTeams } from "@/features/admin/session/components/in-progress-teams";
+import { SessionDeskToolbar } from "@/features/admin/session/components/session-desk-toolbar";
+import { TeamList } from "@/features/admin/session/components/team-list";
+import { StatusLabel } from "@/features/xp/window";
 
 type SessionDetailPageProps = PageProps<"/admin/[session_id]">;
 
@@ -26,70 +25,60 @@ export default async function SessionDetailPage({
   }
 
   const teams = await listTeamsBySession(id);
-  const initialScores =
-    session.status === "IN_PROGRESS" ? await aggregateTeamScores(id) : [];
+  const scores =
+    session.status !== "NOT_STARTED" ? await aggregateTeamScores(id) : [];
   const teamRows = teams.flatMap((team) =>
     team.id == null
       ? []
       : [{ id: team.id, name: team.name, orderId: team.orderId }],
   );
+  const orderedTeamIds = [...teamRows]
+    .sort((a, b) => a.orderId - b.orderId)
+    .map((t) => t.id);
 
   return (
     <main>
-      <Stack gap="md">
-        <Link href="/admin" className="text-sm underline">
-          ← Back to sessions
-        </Link>
-        <Group gap="sm" align="center">
-          <Title order={2}>{session.name}</Title>
-          <SessionDetailStatus sessionId={id} status={session.status} />
-        </Group>
-        <Text c="dimmed" size="sm">
-          Session ID: {session.id}
-        </Text>
+      <SessionDeskToolbar
+        sessionId={id}
+        status={session.status}
+        teamCount={teamRows.length}
+        activeTeamId={session.activeTeamId}
+        orderedTeamIds={orderedTeamIds}
+      />
 
-        <Paper withBorder p="md" radius="md">
-          <Stack gap="md">
-            <Title order={4}>Teams</Title>
-            {session.status === "NOT_STARTED" ? (
-              <TeamList sessionId={id} teams={teamRows} />
-            ) : session.status === "IN_PROGRESS" ? (
-              <InProgressTeams
-                sessionId={id}
-                teams={teamRows}
-                activeTeamId={session.activeTeamId}
-                initialScores={initialScores}
-              />
-            ) : teamRows.length === 0 ? (
-              <Text c="dimmed" size="sm">No teams yet.</Text>
-            ) : (
-              <Stack gap="xs">
-                {teamRows.map((team) => (
-                  <Group key={team.id} gap="sm" wrap="nowrap">
-                    <Text
-                      size="sm"
-                      c="dimmed"
-                      className="w-6 shrink-0 text-right tabular-nums"
-                    >
-                      {team.orderId}
-                    </Text>
-                    <Text size="sm">{team.name}</Text>
-                    {team.id === session.activeTeamId ? (
-                      <Badge size="sm" color="green" variant="light">
-                        Active
-                      </Badge>
-                    ) : null}
-                  </Group>
-                ))}
-              </Stack>
-            )}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+        <h1 className="xp-page-heading" style={{ margin: 0 }}>{session.name}</h1>
+        <StatusLabel status={session.status} />
+      </div>
+      <p className="xp-text-dim" style={{ margin: "0 0 12px", fontSize: "var(--xp-font-sm)" }}>
+        Session ID: {session.id}
+      </p>
 
-            {session.status === "NOT_STARTED" ? (
-              <CreateTeamForm sessionId={id} />
-            ) : null}
-          </Stack>
-        </Paper>
-      </Stack>
+      {session.status === "NOT_STARTED" ? (
+        <>
+          <TeamList sessionId={id} teams={teamRows} />
+          <div className="xp-inset-statusbar">
+            <span className="xp-statusbar__section">Not started</span>
+            <span className="xp-statusbar__section xp-statusbar__section--grow">
+              {teamRows.length} team{teamRows.length === 1 ? "" : "s"} configured
+            </span>
+            <span className="xp-statusbar__section">Drag to reorder</span>
+          </div>
+        </>
+      ) : null}
+
+      {session.status === "IN_PROGRESS" ? (
+        <InProgressTeams
+          sessionId={id}
+          teams={teamRows}
+          activeTeamId={session.activeTeamId}
+          initialScores={scores}
+        />
+      ) : null}
+
+      {session.status === "COMPLETED" ? (
+        <CompletedTeams teams={teamRows} scores={scores} />
+      ) : null}
     </main>
   );
 }

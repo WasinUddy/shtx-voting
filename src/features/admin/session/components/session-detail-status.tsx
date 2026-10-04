@@ -1,7 +1,7 @@
 "use client";
 
 import type { SessionStatus } from "@/lib/session-status";
-import { SessionStatusPill } from "../session-status-pill";
+import { SessionStatusPill } from "@/features/admin/sessions/components/session-status-pill";
 import { useRouter } from "next/navigation";
 
 type SessionDetailStatusProps = {

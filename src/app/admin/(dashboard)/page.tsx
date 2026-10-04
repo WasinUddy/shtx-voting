@@ -1,8 +1,7 @@
-import { CreateSessionForm } from "./create-session-form";
-import { SessionsList, type SessionListItem } from "./sessions-list";
+import { AdminSessionsPage } from "@/features/admin/sessions/components/admin-sessions-page";
+import type { SessionListItem } from "@/features/admin/sessions/components/sessions-list";
 import { formatSessionUpdatedAt } from "@/lib/format-session-time";
 import { listSessions } from "@/services/sessions";
-import { Paper, Stack, Text, Title } from "@mantine/core";
 
 export default async function AdminPage() {
   let sessions: SessionListItem[] = [];
@@ -25,32 +24,7 @@ export default async function AdminPage() {
 
   return (
     <main>
-      <Stack gap="md">
-        <Title order={2}>Sessions</Title>
-
-        {loadFailed ? (
-          <Text c="dimmed" size="sm">
-            Could not load sessions. Check the server console for details.
-          </Text>
-        ) : null}
-
-        <Paper withBorder p="sm" radius="md">
-          <CreateSessionForm />
-        </Paper>
-
-        {!loadFailed && sessions.length === 0 ? (
-          <Text c="dimmed" size="sm">No sessions yet. Create one above.</Text>
-        ) : null}
-
-        {!loadFailed && sessions.length > 0 ? (
-          <SessionsList sessions={sessions} />
-        ) : null}
-
-        <Text size="xs" c="dimmed">
-          Click a status pill to advance it. Completed sessions stay completed.
-          Only one session can be in progress at a time.
-        </Text>
-      </Stack>
+      <AdminSessionsPage sessions={sessions} loadFailed={loadFailed} />
     </main>
   );
 }
