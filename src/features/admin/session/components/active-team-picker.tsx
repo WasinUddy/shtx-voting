@@ -2,7 +2,7 @@
 
 import { Badge, Button, Group, Stack, Text } from "@mantine/core";
 import { useTransition } from "react";
-import { setActiveTeam } from "./actions";
+import { setActiveTeam } from "@/features/admin/session/actions";
 
 type TeamRow = {
   id: number;

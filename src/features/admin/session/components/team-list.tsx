@@ -15,10 +15,11 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { ActionIcon, Alert, Text, TextInput } from "@mantine/core";
-import { GripVertical, Pencil, X } from "lucide-react";
+import { IconAdd, IconGrip, IconPencil, IconRemove } from "@/features/xp/icons";
+import { GroupBox, ToolbarButton, XpAlert, XpInput } from "@/features/xp/window";
+import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
-import { deleteTeam, renameTeam, reorderTeams } from "./actions";
+import { createTeam, deleteTeam, renameTeam, reorderTeams } from "@/features/admin/session/actions";
 
 export type TeamListItem = {
   id: number;
@@ -50,11 +51,13 @@ function teamSignature(teams: TeamListItem[]) {
 }
 
 export function TeamList({ sessionId, teams: initialTeams }: TeamListProps) {
+  const router = useRouter();
   const signature = teamSignature(initialTeams);
   const [teams, setTeams] = useState(initialTeams);
   const [prevSignature, setPrevSignature] = useState(signature);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [draft, setDraft] = useState("");
+  const [newTeamName, setNewTeamName] = useState("");
   const [error, setError] = useState<string | undefined>();
   const [pending, startTransition] = useTransition();
   const skipBlurSave = useRef(false);
@@ -169,49 +172,98 @@ export function TeamList({ sessionId, teams: initialTeams }: TeamListProps) {
     });
   }
 
-  if (teams.length === 0) {
-    return (
-      <Text c="dimmed" size="sm">
-        No teams yet.
-      </Text>
-    );
+  function addTeam() {
+    const name = newTeamName.trim();
+    if (!name) {
+      setError("Team name is required");
+      return;
+    }
+    setError(undefined);
+    const formData = new FormData();
+    formData.set("sessionId", String(sessionId));
+    formData.set("name", name);
+    startTransition(async () => {
+      const result = await createTeam(undefined, formData);
+      if (result) {
+        setError(result);
+        return;
+      }
+      setNewTeamName("");
+      router.refresh();
+    });
   }
 
   return (
-    <div>
-      {error ? (
-        <Alert color="red" mb="sm">
-          {error}
-        </Alert>
-      ) : null}
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragEnd={handleDragEnd}
-      >
-        <SortableContext
-          items={teams.map((team) => team.id)}
-          strategy={verticalListSortingStrategy}
+    <GroupBox label="Teams">
+      {error ? <XpAlert>{error}</XpAlert> : null}
+
+      {teams.length === 0 ? (
+        <p className="xp-text-dim" style={{ marginBottom: 8 }}>
+          No teams yet. Add one below.
+        </p>
+      ) : (
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
         >
-          <ul className="m-0 list-none overflow-hidden rounded-md border border-black/[.08] p-0 dark:border-white/[.145]">
-            {teams.map((team) => (
-              <SortableTeamRow
-                key={team.id}
-                team={team}
-                editing={editingId === team.id}
-                draft={draft}
-                pending={pending}
-                onDraftChange={setDraft}
-                onStartEdit={() => startEdit(team)}
-                onCommitEdit={() => commitEdit(team.id)}
-                onCancelEdit={cancelEdit}
-                onRemove={() => remove(team)}
-              />
-            ))}
-          </ul>
-        </SortableContext>
-      </DndContext>
-    </div>
+          <SortableContext
+            items={teams.map((team) => team.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            <div className="xp-listview" style={{ marginBottom: 8 }}>
+              <div
+                className="xp-listview__header"
+                style={{
+                  gridTemplateColumns:
+                    "2.25rem 2.5rem minmax(0, 1fr) 4.5rem 4.5rem",
+                }}
+              >
+                <span aria-hidden />
+                <span>#</span>
+                <span>Name</span>
+                <span className="xp-text-right">Edit</span>
+                <span className="xp-text-right">Remove</span>
+              </div>
+              {teams.map((team) => (
+                <SortableTeamRow
+                  key={team.id}
+                  team={team}
+                  editing={editingId === team.id}
+                  draft={draft}
+                  pending={pending}
+                  onDraftChange={setDraft}
+                  onStartEdit={() => startEdit(team)}
+                  onCommitEdit={() => commitEdit(team.id)}
+                  onCancelEdit={cancelEdit}
+                  onRemove={() => remove(team)}
+                />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
+      )}
+
+      <div className="xp-toolbar-form" style={{ marginTop: 4 }}>
+        <span className="xp-toolbar-label">Add team:</span>
+        <XpInput
+          value={newTeamName}
+          onChange={setNewTeamName}
+          placeholder="Team name"
+          aria-label="New team name"
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              addTeam();
+            }
+          }}
+        />
+        <ToolbarButton type="button" disabled={pending} onClick={addTeam}>
+          <IconAdd />
+          <span>Add</span>
+        </ToolbarButton>
+      </div>
+    </GroupBox>
   );
 }
 
@@ -237,37 +289,35 @@ function SortableTeamRow({
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
+    opacity: isDragging ? 0.85 : 1,
+    zIndex: isDragging ? 10 : undefined,
+    position: isDragging ? "relative" as const : undefined,
   };
 
   return (
-    <li
+    <div
       ref={setNodeRef}
-      style={style}
-      className={`grid grid-cols-[1.75rem_1.75rem_minmax(0,1fr)_auto_auto] items-center gap-x-2 border-b border-black/[.08] px-2 py-1.5 last:border-b-0 dark:border-white/[.145] ${
-        isDragging ? "relative z-10 bg-white opacity-80 dark:bg-black" : ""
-      }`}
+      className="xp-listview__row"
+      style={{
+        ...style,
+        gridTemplateColumns: "2.25rem 2.5rem minmax(0, 1fr) 4.5rem 4.5rem",
+      }}
     >
       <button
         type="button"
-        className="flex h-7 w-7 cursor-grab items-center justify-center rounded-sm text-black/55 hover:bg-black/[.04] active:cursor-grabbing disabled:cursor-not-allowed dark:text-white/55 dark:hover:bg-white/[.06]"
+        className="xp-icon-btn"
         aria-label={`Reorder ${team.name}`}
         disabled={pending}
         {...attributes}
         {...listeners}
       >
-        <GripVertical size={16} strokeWidth={2} aria-hidden />
+        <IconGrip />
       </button>
-      <Text
-        size="sm"
-        c="dimmed"
-        className="w-7 text-right tabular-nums"
-      >
-        {team.orderId}
-      </Text>
+      <span className="xp-tabular xp-text-dim">{team.orderId}</span>
       {editing ? (
-        <TextInput
+        <XpInput
           value={draft}
-          onChange={(event) => onDraftChange(event.currentTarget.value)}
+          onChange={onDraftChange}
           onKeyDown={(event) => {
             if (event.key === "Escape") {
               event.preventDefault();
@@ -280,46 +330,43 @@ function SortableTeamRow({
           }}
           onBlur={onCommitEdit}
           autoFocus
-          size="xs"
           aria-label="Team name"
           disabled={pending}
         />
       ) : (
-        <Text size="sm" truncate>
-          {team.name}
-        </Text>
+        <span className="xp-listview__cell">{team.name}</span>
       )}
       {editing ? (
-        <span className="w-7" />
+        <span />
       ) : (
-        <ActionIcon
-          type="button"
-          variant="subtle"
-          color="gray"
-          size="sm"
-          aria-label={`Rename ${team.name}`}
-          disabled={pending}
-          onClick={onStartEdit}
-        >
-          <Pencil size={16} strokeWidth={2} />
-        </ActionIcon>
+        <span className="xp-text-right">
+          <button
+            type="button"
+            className="xp-icon-btn"
+            aria-label={`Rename ${team.name}`}
+            disabled={pending}
+            onClick={onStartEdit}
+          >
+            <IconPencil />
+          </button>
+        </span>
       )}
-      <ActionIcon
-        type="button"
-        variant="subtle"
-        color="red"
-        size="sm"
-        aria-label={`Remove ${team.name}`}
-        disabled={pending}
-        onMouseDown={() => {
-          if (editing) {
-            onCancelEdit();
-          }
-        }}
-        onClick={onRemove}
-      >
-        <X size={16} strokeWidth={2} />
-      </ActionIcon>
-    </li>
+      <span className="xp-text-right">
+        <button
+          type="button"
+          className="xp-icon-btn"
+          aria-label={`Remove ${team.name}`}
+          disabled={pending}
+          onMouseDown={() => {
+            if (editing) {
+              onCancelEdit();
+            }
+          }}
+          onClick={onRemove}
+        >
+          <IconRemove />
+        </button>
+      </span>
+    </div>
   );
 }
