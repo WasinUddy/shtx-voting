@@ -9,6 +9,8 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@mantine/core": "^9.6.3",
+    "@mantine/hooks": "^9.6.3",
     "better-sqlite3": "^13.0.3",
     "drizzle-orm": "^0.45.3",
     "next": "16.3.8",
@@ -24,6 +26,9 @@
     "babel-plugin-react-compiler": "1.0.0",
     "eslint": "^9",
     "eslint-config-next": "16.3.8",
+    "postcss": "^8.5.28",
+    "postcss-preset-mantine": "^1.18.0",
+    "postcss-simple-vars": "^7.0.1",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
