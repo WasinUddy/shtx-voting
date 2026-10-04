@@ -1,0 +1,326 @@
+name: CI
+
+# Acceptance (Cucumber + Playwright) per feature in parallel, then either a PR
+# Docker build gate or multi-arch GHCR publish on main / workflow_dispatch.
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  DOCKERFILE_PATH: Dockerfile
+  GHCR_REGISTRY: ghcr.io
+  GHCR_IMAGE_NAME: shtx-voting
+
+jobs:
+  playwright-cache:
+    name: Warm Playwright cache
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Resolve Playwright version
+        id: version
+        run: |
+          RAW="$(pnpm exec playwright --version)"
+          VERSION="$(printf '%s\n' "$RAW" | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+' | head -1)"
+          if [ -z "$VERSION" ]; then
+            echo "Failed to parse Playwright version from: ${RAW}" >&2
+            exit 1
+          fi
+          echo "Resolved Playwright ${VERSION}"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Restore Playwright browser cache
+        id: cache
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ steps.version.outputs.version }}-chromium-${{ hashFiles('pnpm-lock.yaml') }}
+
+      - name: Install Playwright Chromium (browsers + system deps)
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Install Playwright system dependencies
+        if: steps.cache.outputs.cache-hit == 'true'
+        run: pnpm exec playwright install-deps chromium
+
+  acceptance:
+    name: AC · ${{ matrix.feature }}
+    needs: playwright-cache
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        feature:
+          - admin_sessions
+          - client_voting
+          - live_voting_sync
+    env:
+      CI: "true"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Resolve Playwright version
+        id: version
+        run: |
+          RAW="$(pnpm exec playwright --version)"
+          VERSION="$(printf '%s\n' "$RAW" | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+' | head -1)"
+          if [ -z "$VERSION" ]; then
+            echo "Failed to parse Playwright version from: ${RAW}" >&2
+            exit 1
+          fi
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Restore Playwright browser cache
+        id: cache
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ steps.version.outputs.version }}-chromium-${{ hashFiles('pnpm-lock.yaml') }}
+
+      - name: Install Playwright Chromium (browsers + system deps)
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Install Playwright system dependencies
+        if: steps.cache.outputs.cache-hit == 'true'
+        run: pnpm exec playwright install-deps chromium
+
+      - name: Run acceptance tests (${{ matrix.feature }})
+        run: pnpm run test:acceptance -- "acceptance/features/${{ matrix.feature }}.feature"
+
+  acceptance-passed:
+    name: Acceptance passed
+    needs: acceptance
+    if: always()
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Verify every feature job succeeded
+        run: |
+          if [ "${{ needs.acceptance.result }}" != "success" ]; then
+            echo "One or more acceptance feature jobs failed (${{ needs.acceptance.result }})."
+            exit 1
+          fi
+          echo "All acceptance feature jobs passed."
+
+  docker-build:
+    name: Docker build
+    needs: acceptance-passed
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build image (amd64, no push)
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: ${{ env.DOCKERFILE_PATH }}
+          platforms: linux/amd64
+          push: false
+
+  prepare-image:
+    name: Prepare image variables
+    needs: acceptance-passed
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    outputs:
+      semver: ${{ steps.set.outputs.semver }}
+      ghcr_image_full: ${{ steps.set.outputs.ghcr_image_full }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Determine version and image tags
+        id: set
+        run: |
+          set -eux
+
+          SEMVER="latest"
+          OWNER="$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')"
+          IMAGE_NAME="$(echo "${{ env.GHCR_IMAGE_NAME }}" | tr '[:upper:]' '[:lower:]')"
+          GHCR_IMAGE_FULL="${{ env.GHCR_REGISTRY }}/${OWNER}/${IMAGE_NAME}"
+
+          echo "semver=$SEMVER" >> "$GITHUB_OUTPUT"
+          echo "ghcr_image_full=$GHCR_IMAGE_FULL" >> "$GITHUB_OUTPUT"
+
+  build-amd64:
+    name: Build image (amd64)
+    needs: prepare-image
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ env.GHCR_REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push amd64 image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: ${{ env.DOCKERFILE_PATH }}
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ needs.prepare-image.outputs.ghcr_image_full }}-build:latest-amd64
+
+  build-arm64:
+    name: Build image (arm64)
+    needs: prepare-image
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ env.GHCR_REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push arm64 image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: ${{ env.DOCKERFILE_PATH }}
+          platforms: linux/arm64
+          push: true
+          tags: |
+            ${{ needs.prepare-image.outputs.ghcr_image_full }}-build:latest-arm64
+
+  push-image:
+    name: Create image manifest
+    needs:
+      - prepare-image
+      - build-amd64
+      - build-arm64
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ env.GHCR_REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create and push multi-arch manifest
+        run: |
+          set -eux
+          GHCR_IMAGE="${{ needs.prepare-image.outputs.ghcr_image_full }}"
+          BUILD_IMAGE="${{ needs.prepare-image.outputs.ghcr_image_full }}-build"
+          COMMIT_SHA="${{ github.sha }}"
+          SHORT_SHA="${COMMIT_SHA:0:7}"
+
+          docker buildx imagetools create \
+            --tag "${GHCR_IMAGE}:${{ needs.prepare-image.outputs.semver }}" \
+            --tag "${GHCR_IMAGE}:${SHORT_SHA}" \
+            "${BUILD_IMAGE}:latest-amd64" \
+            "${BUILD_IMAGE}:latest-arm64"
+
+  cleanup-build-images:
+    name: Cleanup temporary build images
+    needs:
+      - prepare-image
+      - push-image
+    if: always() && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Delete temporary build package
+        run: |
+          set -eux
+
+          OWNER="${{ github.repository_owner }}"
+          PACKAGE_NAME="${{ env.GHCR_IMAGE_NAME }}-build"
+
+          OWNER_TYPE="$(
+            curl -fsSL \
+              -H "Accept: application/vnd.github+json" \
+              -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              "https://api.github.com/users/${OWNER}" \
+              | sed -n 's/.*"type": *"\([^"]*\)".*/\1/p' \
+              | head -n 1
+          )"
+
+          if [ "$OWNER_TYPE" = "Organization" ]; then
+            PACKAGE_URL="https://api.github.com/orgs/${OWNER}/packages/container/${PACKAGE_NAME}"
+          else
+            PACKAGE_URL="https://api.github.com/user/packages/container/${PACKAGE_NAME}"
+          fi
+
+          echo "Attempting to delete package: ${PACKAGE_NAME}"
+
+          curl -X DELETE \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "$PACKAGE_URL" \
+            || echo "Package ${PACKAGE_NAME} may not exist or already be deleted"
+
+          echo "Cleanup completed"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
