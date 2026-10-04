@@ -23,9 +23,3 @@ export const SESSION_STATUS_LABELS: Record<SessionStatus, string> = {
   IN_PROGRESS: "In progress",
   COMPLETED: "Completed",
 };
-
-export const SESSION_STATUS_COLORS: Record<SessionStatus, string> = {
-  NOT_STARTED: "gray",
-  IN_PROGRESS: "blue",
-  COMPLETED: "green",
-};

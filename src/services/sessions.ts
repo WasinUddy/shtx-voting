@@ -85,6 +85,11 @@ export function updateSessionStatus(
   });
 }
 
+export async function deleteSession(id: number): Promise<boolean> {
+  const rows = db.delete(sessions).where(eq(sessions.id, id)).returning().all();
+  return rows.length > 0;
+}
+
 export async function setActiveTeam(
   sessionId: number,
   teamId: number | null,

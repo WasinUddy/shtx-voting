@@ -1,0 +1,9 @@
+node_modules
+.next
+.git
+.idea
+*.sqlite
+.env*
+npm-debug.log*
+pnpm-debug.log*
+Dockerfile

@@ -1,0 +1,14 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Test: Headed AC" type="js.build_tools.npm">
+    <package-json value="$PROJECT_DIR$/package.json" />
+    <command value="run" />
+    <scripts>
+      <script value="test:acceptance" />
+    </scripts>
+    <node-interpreter value="project" />
+    <envs>
+      <env name="HEADED" value="1" />
+    </envs>
+    <method v="2" />
+  </configuration>
+</component>

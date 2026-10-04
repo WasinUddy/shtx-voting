@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
-import { IconApp } from "./icons";
+import { SESSION_STATUS_LABELS, type SessionStatus } from "@/lib/session-status";
+import { IconApp, IconError, IconWarning } from "./icons";
 
 type AppWindowProps = {
   title: string;
@@ -32,7 +33,12 @@ export function AppWindow({
         {menu ? <div className="xp-menubar">{menu}</div> : null}
         {toolbar ? <div className="xp-toolbar">{toolbar}</div> : null}
         <div className="xp-client">{children}</div>
-        {statusBar ? <div className="xp-statusbar">{statusBar}</div> : null}
+        {statusBar ? (
+          <div className="xp-statusbar">
+            {statusBar}
+            <span className="xp-statusbar__grip" aria-hidden />
+          </div>
+        ) : null}
       </div>
     </div>
   );
@@ -51,9 +57,27 @@ export function TitleBar({ title, icon }: TitleBarProps) {
         <span className="xp-titlebar__text">{title}</span>
       </div>
       <div className="xp-titlebar__buttons" aria-hidden>
-        <span className="xp-titlebar__btn xp-titlebar__btn--min" />
-        <span className="xp-titlebar__btn xp-titlebar__btn--max" />
-        <span className="xp-titlebar__btn xp-titlebar__btn--close" />
+        <span className="xp-titlebar__btn xp-titlebar__btn--min">
+          <svg viewBox="0 0 10 10" className="xp-titlebar__glyph">
+            <path d="M2 7.5h6" stroke="currentColor" strokeWidth="1.25" />
+          </svg>
+        </span>
+        <span className="xp-titlebar__btn xp-titlebar__btn--max">
+          <svg viewBox="0 0 10 10" className="xp-titlebar__glyph">
+            <path d="M2 2.5h6v5H2V2.5z" fill="none" stroke="currentColor" strokeWidth="1" />
+            <path d="M2 2.5h6" stroke="currentColor" strokeWidth="1.75" />
+          </svg>
+        </span>
+        <span className="xp-titlebar__btn xp-titlebar__btn--close">
+          <svg viewBox="0 0 10 10" className="xp-titlebar__glyph">
+            <path
+              d="M2 2l6 6M8 2L2 8"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+            />
+          </svg>
+        </span>
       </div>
     </div>
   );
@@ -216,17 +240,21 @@ export function XpInput({
 }
 
 type StatusLabelProps = {
-  status: "NOT_STARTED" | "IN_PROGRESS" | "COMPLETED";
+  status: SessionStatus;
+};
+
+const STATUS_LABEL_CLASS: Record<SessionStatus, string> = {
+  NOT_STARTED: "xp-status-label--neutral",
+  IN_PROGRESS: "xp-status-label--active",
+  COMPLETED: "xp-status-label--done",
 };
 
 export function StatusLabel({ status }: StatusLabelProps) {
-  const map = {
-    NOT_STARTED: { text: "Not started", className: "xp-status-label--neutral" },
-    IN_PROGRESS: { text: "In progress", className: "xp-status-label--active" },
-    COMPLETED: { text: "Completed", className: "xp-status-label--done" },
-  };
-  const { text, className } = map[status];
-  return <span className={`xp-status-label ${className}`}>{text}</span>;
+  return (
+    <span className={`xp-status-label ${STATUS_LABEL_CLASS[status]}`}>
+      {SESSION_STATUS_LABELS[status]}
+    </span>
+  );
 }
 
 type XpAlertProps = {
@@ -236,10 +264,14 @@ type XpAlertProps = {
 };
 
 export function XpAlert({ variant = "error", title, children }: XpAlertProps) {
+  const icon = variant === "warning" ? <IconWarning size={32} /> : <IconError size={32} />;
   return (
     <div className={`xp-alert xp-alert--${variant}`} role="alert">
-      {title ? <strong className="xp-alert__title">{title}</strong> : null}
-      <span>{children}</span>
+      <span className="xp-alert__icon">{icon}</span>
+      <div className="xp-alert__body">
+        {title ? <strong className="xp-alert__title">{title}</strong> : null}
+        <span>{children}</span>
+      </div>
     </div>
   );
 }

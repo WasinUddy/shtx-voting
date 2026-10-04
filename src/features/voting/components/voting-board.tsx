@@ -10,7 +10,7 @@ import {
   XpAlert,
   XpButton,
 } from "@/features/xp/window";
-import { useCallback, useEffect, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 const SCORE_OPTIONS = [3, 2, 1, 0, -1, -2, -3] as const;
 
@@ -20,10 +20,10 @@ function formatScore(score: number): string {
 
 function scoreButtonClass(score: number): string {
   if (score > 0) {
-    return "xp-btn--score-positive";
+    return `xp-btn--score-pos-${score}`;
   }
   if (score < 0) {
-    return "xp-btn--score-negative";
+    return `xp-btn--score-neg-${Math.abs(score)}`;
   }
   return "xp-btn--score-zero";
 }
@@ -38,7 +38,7 @@ export function VotingBoard({ initialAudience }: VotingBoardProps) {
   const [selectedScore, setSelectedScore] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [connected, setConnected] = useState(true);
-  const [pending, startTransition] = useTransition();
+  const submitInFlight = useRef(false);
 
   useEffect(() => {
     const source = new EventSource("/api/live");
@@ -98,24 +98,26 @@ export function VotingBoard({ initialAudience }: VotingBoardProps) {
   }, [fingerprint, sessionId, teamId]);
 
   const vote = useCallback(
-    (score: number) => {
+    async (score: number) => {
       if (!fingerprint || sessionId == null || teamId == null) {
         return;
       }
+      if (submitInFlight.current) {
+        return;
+      }
+      submitInFlight.current = true;
       setError(null);
-      startTransition(async () => {
-        const message = await submitVote(
-          sessionId,
-          teamId,
-          fingerprint,
-          score,
-        );
-        if (message) {
-          setError(message);
-          return;
-        }
-        setSelectedScore(score);
+      let rollbackScore: number | null = null;
+      setSelectedScore((prev) => {
+        rollbackScore = prev;
+        return score;
       });
+      const message = await submitVote(sessionId, teamId, fingerprint, score);
+      submitInFlight.current = false;
+      if (message) {
+        setError(message);
+        setSelectedScore(rollbackScore);
+      }
     },
     [fingerprint, sessionId, teamId],
   );
@@ -152,11 +154,6 @@ export function VotingBoard({ initialAudience }: VotingBoardProps) {
       ) : (
         <>
           <div className="xp-vote-header">
-            <FitText
-              text={audience.session.name}
-              className="xp-vote-header__session"
-              minFontSizePx={13}
-            />
             {audience.activeTeam ? (
               <FitText
                 text={audience.activeTeam.name}
@@ -183,7 +180,7 @@ export function VotingBoard({ initialAudience }: VotingBoardProps) {
                   key={score}
                   type="button"
                   pressed={isSelected}
-                  disabled={!votingOpen || pending}
+                  disabled={!votingOpen}
                   className={`xp-btn--score ${scoreButtonClass(score)}`}
                   onClick={() => vote(score)}
                 >
