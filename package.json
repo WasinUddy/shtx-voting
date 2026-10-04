@@ -2,19 +2,24 @@
   "name": "shtx-voting",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "pnpm@10.30.3",
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "better-sqlite3"
+    ]
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:acceptance": "DATABASE_PATH=./acceptance.sqlite ADMIN_PASSWORD=admin AUTH_SECRET=acceptance-test-auth-secret-32chars-min cucumber-js --config acceptance/cucumber.js"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
     "@fingerprintjs/fingerprintjs": "^5.2.0",
-    "@mantine/core": "^9.6.3",
-    "@mantine/hooks": "^9.6.3",
     "better-sqlite3": "^13.0.3",
     "drizzle-orm": "^0.45.3",
     "lucide-react": "^1.52.0",
@@ -24,6 +29,7 @@
     "react-dom": "19.2.8"
   },
   "devDependencies": {
+    "@cucumber/cucumber": "^13.2.1",
     "@tailwindcss/postcss": "^4",
     "@types/better-sqlite3": "^9.6.0",
     "@types/node": "^20",
@@ -32,10 +38,10 @@
     "babel-plugin-react-compiler": "1.0.0",
     "eslint": "^9",
     "eslint-config-next": "16.3.8",
+    "playwright": "^1.63.0",
     "postcss": "^8.5.28",
-    "postcss-preset-mantine": "^1.18.0",
-    "postcss-simple-vars": "^7.0.1",
     "tailwindcss": "^4",
+    "tsx": "^4.23.15",
     "typescript": "^5"
   }
 }

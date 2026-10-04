@@ -4,6 +4,7 @@ import { requireAdminSession } from "@/lib/require-admin";
 import { isSessionStatus } from "@/lib/session-status";
 import {
   createSession as createSessionInDb,
+  deleteSession as deleteSessionInDb,
   getSessionById,
   listInProgressSessions,
   updateSessionStatus as updateSessionStatusInDb,
@@ -106,5 +107,33 @@ export async function updateSessionStatus(
   } catch (error) {
     console.error("updateSessionStatus failed:", error);
     return [];
+  }
+}
+
+export async function deleteSession(sessionId: number): Promise<string | undefined> {
+  await requireAdminSession();
+
+  if (!Number.isFinite(sessionId)) {
+    return "Invalid session";
+  }
+
+  const session = await getSessionById(sessionId);
+  if (!session) {
+    return "Session not found";
+  }
+  if (session.status !== "COMPLETED") {
+    return "Only completed sessions can be deleted";
+  }
+
+  try {
+    const removed = await deleteSessionInDb(sessionId);
+    if (!removed) {
+      return "Could not delete session";
+    }
+    revalidatePath("/admin");
+    await publishAudienceState();
+  } catch (error) {
+    console.error("deleteSession failed:", error);
+    return "Could not delete session. Check the console for details.";
   }
 }

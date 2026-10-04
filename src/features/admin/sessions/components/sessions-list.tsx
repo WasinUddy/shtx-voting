@@ -54,6 +54,10 @@ export function SessionsList({ sessions: initialSessions }: SessionsListProps) {
     setSessions((current) => applyPatches(current, patches));
   }
 
+  function handleDeleted(sessionId: number) {
+    setSessions((current) => current.filter((session) => session.id !== sessionId));
+  }
+
   return (
     <div className="xp-listview">
       <div
@@ -94,8 +98,10 @@ export function SessionsList({ sessions: initialSessions }: SessionsListProps) {
           >
             <SessionStatusActions
               sessionId={session.id}
+              sessionName={session.name}
               status={session.status}
               onPatched={handlePatched}
+              onDeleted={handleDeleted}
             />
           </span>
         </Link>

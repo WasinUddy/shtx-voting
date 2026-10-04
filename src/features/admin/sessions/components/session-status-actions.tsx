@@ -5,25 +5,71 @@ import {
   type SessionStatus,
 } from "@/lib/session-status";
 import type { SessionRowPatch } from "@/features/admin/sessions/types";
+import { IconRemove } from "@/features/xp/icons";
 import { XpButton } from "@/features/xp/window";
 import { useTransition } from "react";
-import { updateSessionStatus } from "@/features/admin/sessions/actions";
+import {
+  deleteSession,
+  updateSessionStatus,
+} from "@/features/admin/sessions/actions";
 
 type SessionStatusActionsProps = {
   sessionId: number;
+  sessionName: string;
   status: SessionStatus;
   onPatched: (patches: SessionRowPatch[]) => void;
+  onDeleted: (sessionId: number) => void;
 };
 
 export function SessionStatusActions({
   sessionId,
+  sessionName,
   status,
   onPatched,
+  onDeleted,
 }: SessionStatusActionsProps) {
   const [pending, startTransition] = useTransition();
 
   if (status === "COMPLETED") {
-    return null;
+    function remove() {
+      if (!window.confirm(`Remove ${sessionName}?`)) {
+        return;
+      }
+      startTransition(() => {
+        void deleteSession(sessionId)
+          .then((message) => {
+            if (message) {
+              console.error("Failed to delete session:", message);
+              window.alert(message);
+              return;
+            }
+            onDeleted(sessionId);
+          })
+          .catch((error) => {
+            console.error("Failed to delete session:", error);
+          });
+      });
+    }
+
+    return (
+      <span
+        role="presentation"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+        }}
+      >
+        <button
+          type="button"
+          className="xp-icon-btn"
+          aria-label={`Remove ${sessionName}`}
+          disabled={pending}
+          onClick={() => remove()}
+        >
+          <IconRemove />
+        </button>
+      </span>
+    );
   }
 
   function advance() {
