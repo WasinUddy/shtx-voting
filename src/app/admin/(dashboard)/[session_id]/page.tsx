@@ -1,7 +1,12 @@
 import { getSessionById } from "@/services/sessions";
-import { Stack, Text, Title } from "@mantine/core";
+import { listTeamsBySession } from "@/services/teams";
+import { Badge, Group, Paper, Stack, Text, Title } from "@mantine/core";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ActiveTeamPicker } from "./active-team-picker";
+import { CreateTeamForm } from "./create-team-form";
+import { SessionDetailStatus } from "./session-detail-status";
+import { TeamList } from "./team-list";
 
 type SessionDetailPageProps = PageProps<"/admin/[session_id]">;
 
@@ -19,15 +24,67 @@ export default async function SessionDetailPage({
     notFound();
   }
 
+  const teams = await listTeamsBySession(id);
+  const teamRows = teams.flatMap((team) =>
+    team.id == null
+      ? []
+      : [{ id: team.id, name: team.name, orderId: team.orderId }],
+  );
+
   return (
     <main>
       <Stack gap="md">
         <Link href="/admin" className="text-sm underline">
           ← Back to sessions
         </Link>
-        <Title order={2}>{session.name}</Title>
-        <Text c="dimmed">Session ID: {session.id}</Text>
-        <Text>Session detail coming soon.</Text>
+        <Group gap="sm" align="center">
+          <Title order={2}>{session.name}</Title>
+          <SessionDetailStatus sessionId={id} status={session.status} />
+        </Group>
+        <Text c="dimmed" size="sm">
+          Session ID: {session.id}
+        </Text>
+
+        <Paper withBorder p="md" radius="md">
+          <Stack gap="md">
+            <Title order={4}>Teams</Title>
+            {session.status === "NOT_STARTED" ? (
+              <TeamList sessionId={id} teams={teamRows} />
+            ) : session.status === "IN_PROGRESS" ? (
+              <ActiveTeamPicker
+                sessionId={id}
+                teams={teamRows}
+                activeTeamId={session.activeTeamId}
+              />
+            ) : teamRows.length === 0 ? (
+              <Text c="dimmed" size="sm">No teams yet.</Text>
+            ) : (
+              <Stack gap="xs">
+                {teamRows.map((team) => (
+                  <Group key={team.id} gap="sm" wrap="nowrap">
+                    <Text
+                      size="sm"
+                      c="dimmed"
+                      className="w-6 shrink-0 text-right tabular-nums"
+                    >
+                      {team.orderId}
+                    </Text>
+                    <Text size="sm">{team.name}</Text>
+                    {team.id === session.activeTeamId ? (
+                      <Badge size="sm" color="green" variant="light">
+                        Active
+                      </Badge>
+                    ) : null}
+                  </Group>
+                ))}
+              </Stack>
+            )}
+
+            {session.status === "NOT_STARTED" ? (
+              <CreateTeamForm sessionId={id} />
+            ) : null}
+          </Stack>
+        </Paper>
       </Stack>
     </main>
   );

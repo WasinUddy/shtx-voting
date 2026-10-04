@@ -1,6 +1,6 @@
 "use server";
 
-import { auth } from "@/auth";
+import { requireAdminSession } from "@/lib/require-admin";
 import { isSessionStatus } from "@/lib/session-status";
 import {
   createSession as createSessionInDb,
@@ -10,15 +10,6 @@ import {
 } from "@/services/sessions";
 import type { SessionRowPatch } from "./session-row-patch";
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
-
-async function requireAdminSession() {
-  const session = await auth();
-  if (!session?.user) {
-    redirect("/admin/login");
-  }
-}
-
 export async function createSession(
   _prev: string | undefined,
   formData: FormData,
@@ -30,8 +21,13 @@ export async function createSession(
     return "Session name is required";
   }
 
-  await createSessionInDb(name);
-  revalidatePath("/admin");
+  try {
+    await createSessionInDb(name);
+    revalidatePath("/admin");
+  } catch (error) {
+    console.error("createSession failed:", error);
+    return "Could not create session. Check the console for details.";
+  }
 }
 
 function toRowPatch(session: {
@@ -66,29 +62,37 @@ export async function updateSessionStatus(
     return [];
   }
 
-  const previouslyInProgress =
-    statusRaw === "IN_PROGRESS" ? await listInProgressSessions() : [];
+  try {
+    const previouslyInProgress =
+      statusRaw === "IN_PROGRESS" ? await listInProgressSessions() : [];
 
-  const updated = await updateSessionStatusInDb(id, statusRaw);
-  const patches: SessionRowPatch[] = [];
+    const updated = await updateSessionStatusInDb(id, statusRaw);
+    const patches: SessionRowPatch[] = [];
 
-  const primary = updated ? toRowPatch(updated) : null;
-  if (primary) {
-    patches.push(primary);
-  }
+    const primary = updated ? toRowPatch(updated) : null;
+    if (primary) {
+      patches.push(primary);
+    }
 
-  if (statusRaw === "IN_PROGRESS") {
-    for (const prev of previouslyInProgress) {
-      if (prev.id === id) {
-        continue;
-      }
-      const refreshed = await getSessionById(prev.id);
-      const patch = refreshed ? toRowPatch(refreshed) : null;
-      if (patch) {
-        patches.push(patch);
+    if (statusRaw === "IN_PROGRESS") {
+      for (const prev of previouslyInProgress) {
+        if (prev.id === id) {
+          continue;
+        }
+        const refreshed = await getSessionById(prev.id);
+        const patch = refreshed ? toRowPatch(refreshed) : null;
+        if (patch) {
+          patches.push(patch);
+        }
       }
     }
-  }
 
-  return patches;
+    revalidatePath("/admin");
+    revalidatePath(`/admin/${id}`);
+
+    return patches;
+  } catch (error) {
+    console.error("updateSessionStatus failed:", error);
+    return [];
+  }
 }

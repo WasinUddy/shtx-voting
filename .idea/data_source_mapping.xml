@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="DataSourcePerFileMappings">
+    <file url="file://$PROJECT_DIR$/migrations/004_add_active_team_to_sessions.sql" value="cc2e11af-d969-45bd-8447-f4cf73ba2d72" />
+  </component>
+</project>

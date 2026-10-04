@@ -1,4 +1,5 @@
 import { sql } from "drizzle-orm";
+import type { AnySQLiteColumn } from "drizzle-orm/sqlite-core";
 import {
   check,
   integer,
@@ -17,6 +18,10 @@ export const sessions = sqliteTable(
     }).notNull(),
     createdAt: text("created_at").default(sql.raw("CURRENT_TIMESTAMP")),
     updatedAt: text("updated_at").default(sql.raw("CURRENT_TIMESTAMP")),
+    activeTeamId: integer("active_team_id").references(
+      (): AnySQLiteColumn => teams.id,
+      { onDelete: "set null" },
+    ),
   },
   () => [
     check(
@@ -34,10 +39,14 @@ export const teams = sqliteTable(
       .notNull()
       .references(() => sessions.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
+    orderId: integer("order_id").notNull(),
     createdAt: text("created_at").default(sql.raw("CURRENT_TIMESTAMP")),
     updatedAt: text("updated_at").default(sql.raw("CURRENT_TIMESTAMP")),
   },
-  (table) => [unique().on(table.sessionId, table.name)],
+  (table) => [
+    unique().on(table.sessionId, table.name),
+    unique().on(table.sessionId, table.orderId),
+  ],
 );
 
 export const votes = sqliteTable(

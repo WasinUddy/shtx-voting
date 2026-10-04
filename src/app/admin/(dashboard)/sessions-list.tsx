@@ -49,6 +49,9 @@ export function SessionsList({ sessions: initialSessions }: SessionsListProps) {
   }, [initialSessions]);
 
   function handlePatched(patches: SessionRowPatch[]) {
+    if (patches.length === 0) {
+      return;
+    }
     setSessions((current) => applyPatches(current, patches));
   }
 

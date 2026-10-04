@@ -1,4 +1,4 @@
-import { desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, ne, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { sessions } from "@/db/schema";
 import type { SessionStatus } from "@/lib/session-status";
@@ -42,17 +42,50 @@ export async function createSession(name: string): Promise<Session> {
   return created;
 }
 
-export async function updateSessionStatus(
+export function updateSessionStatus(
   id: number,
   status: SessionStatus,
+): Session | undefined {
+  return db.transaction((tx) => {
+    if (status === "IN_PROGRESS") {
+      tx
+        .update(sessions)
+        .set({
+          status: "COMPLETED",
+          activeTeamId: null,
+          updatedAt: sql`CURRENT_TIMESTAMP`,
+        })
+        .where(
+          and(eq(sessions.status, "IN_PROGRESS"), ne(sessions.id, id)),
+        )
+        .run();
+    }
+
+    const rows = tx
+      .update(sessions)
+      .set({
+        status,
+        ...(status === "COMPLETED" ? { activeTeamId: null } : {}),
+        updatedAt: sql`CURRENT_TIMESTAMP`,
+      })
+      .where(eq(sessions.id, id))
+      .returning()
+      .all();
+    return rows[0];
+  });
+}
+
+export async function setActiveTeam(
+  sessionId: number,
+  teamId: number | null,
 ): Promise<Session | undefined> {
   const rows = await db
     .update(sessions)
     .set({
-      status,
+      activeTeamId: teamId,
       updatedAt: sql`CURRENT_TIMESTAMP`,
     })
-    .where(eq(sessions.id, id))
+    .where(eq(sessions.id, sessionId))
     .returning();
   return rows[0];
 }

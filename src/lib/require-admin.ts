@@ -1,13 +1,9 @@
 import { auth } from "@/auth";
-import { NextResponse } from "next/server";
+import { redirect } from "next/navigation";
 
-export async function requireAdmin() {
+export async function requireAdminSession() {
   const session = await auth();
   if (!session?.user) {
-    return {
-      session: null,
-      error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }),
-    };
+    redirect("/admin/login");
   }
-  return { session, error: null };
 }
