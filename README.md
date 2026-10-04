@@ -1,36 +1,133 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ShtX-Popular-Voting System
 
-## Getting Started
+Popular voting system for the Thailand 10th Stupid Hackathon pitching session. Built with love — this event always brings me great fun.
 
-First, run the development server:
+## Features
+
+- **Live audience voting** — Attendees score the team on stage from **-3** to **+3** and can change their vote until the stage moves on.
+- **Real-time updates** — Admin desk and voting clients stay in sync over **Server-Sent Events** (no manual refresh).
+- **Session management** — Admins create sessions, add teams, reorder the lineup, start or complete runs, and view final results.
+- **Stage control** — Open a team on stage, clear the stage, and watch the audience UI follow (waiting states when nothing is live).
+- **One active session** — Starting a new session automatically completes any other session that was still in progress.
+- **Fair-ish device limits** — Votes are keyed by a browser **fingerprint** so each device gets one score per team per session.
+- **Admin authentication** — Password-protected admin area (NextAuth) separate from the public voting page.
+- **Persistent storage** — **SQLite** with **Drizzle ORM**; ready to run locally or in **Docker**.
+
+## Design
+
+The UI is a deliberate throwback: **Windows XP**–style windows, title bars, list views, Luna colors, and chunky buttons (`xp-*` components and theme tokens in `globals.css`).
+
+> **Note:** The Windows XP visual design was created with help from **Anthropic Claude**.
+
+- **Audience** — Full-screen “desktop” with a voting window and score pad.
+- **Admin** — Console-style sessions list and per-session desk for teams, stage, and live score totals.
+
+## Development
+
+### Prerequisites
+
+- **Node.js 22** (matches CI and the Docker image)
+- **pnpm 10** — enable via Corepack: `corepack enable` (version is pinned in `package.json` as `pnpm@10.30.3`)
+- **SQLite CLI** (`sqlite3`) — used to apply SQL migrations to your local database file
+- **Native build tools** — required to compile `better-sqlite3` if a prebuilt binary is not available (on Linux/Docker: `python3`, `make`, `g++`, `sqlite-dev`; on macOS, Xcode Command Line Tools are usually enough)
+
+### Run locally
+
+1. Install dependencies:
+
+   ```bash
+   corepack enable
+   pnpm install
+   ```
+
+2. Create a database and apply migrations (default path `./data.sqlite`):
+
+   ```bash
+   export DATABASE_PATH=./data.sqlite
+   touch "$DATABASE_PATH"
+   for migration in migrations/*.sql; do sqlite3 "$DATABASE_PATH" < "$migration"; done
+   ```
+
+3. Configure environment variables (see table below). For day-to-day dev, put them in `.env.local` in the project root — Next.js loads that file automatically:
+
+   ```bash
+   # .env.local
+   DATABASE_PATH=./data.sqlite
+   ADMIN_PASSWORD=admin
+   AUTH_SECRET=dev-auth-secret-at-least-32-characters-long
+   ```
+
+4. Start the dev server:
+
+   ```bash
+   pnpm dev
+   ```
+
+5. Open the app:
+
+   | URL | Purpose |
+   | --- | --- |
+   | [http://localhost:3000](http://localhost:3000) | Audience voting |
+   | [http://localhost:3000/admin/login](http://localhost:3000/admin/login) | Admin console (use `ADMIN_PASSWORD`) |
+
+Other useful scripts: `pnpm build` / `pnpm start` (production mode), `pnpm lint`.
+
+### Docker
+
+Build and run the production image (migrations run at image build time; DB lives at `/app/data/db.sqlite` inside the container):
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+docker build -t shtx-voting .
+docker run --rm -p 3000:3000 \
+  -e ADMIN_PASSWORD=admin \
+  -e AUTH_SECRET=dev-auth-secret-at-least-32-characters-long \
+  shtx-voting
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Environment variables
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+#### Application (local dev, `pnpm start`, Docker)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Variable | Required | Default | Description |
+| --- | --- | --- | --- |
+| `DATABASE_PATH` | No | `./data.sqlite` | Path to the SQLite database file used by the app. |
+| `ADMIN_PASSWORD` | **Yes** | — | Password for admin sign-in at `/admin/login`. If unset, login always fails. |
+| `AUTH_SECRET` | **Yes** | — | Secret for NextAuth JWT/session signing. Use a long random string (32+ characters recommended). |
 
-## Learn More
+`NODE_ENV` is set automatically by Next.js (`development` for `pnpm dev`, `production` for `pnpm start` / Docker).
 
-To learn more about Next.js, take a look at the following resources:
+#### Acceptance tests only
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Used by `pnpm run test:acceptance` (see `acceptance/support/server.ts` and `package.json`). The test script already sets `DATABASE_PATH`, `ADMIN_PASSWORD`, and `AUTH_SECRET` unless you override them.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+| Variable | Required | Default | Description |
+| --- | --- | --- | --- |
+| `DATABASE_PATH` | No | `./acceptance.sqlite` | SQLite file for the test server (recreated per run). |
+| `ADMIN_PASSWORD` | No | `admin` | Admin password during acceptance runs. |
+| `AUTH_SECRET` | No | `acceptance-test-auth-secret-32chars-min` | NextAuth secret for the test server. |
+| `ACCEPTANCE_PORT` | No | `3001` | Port for `next start` spawned by Cucumber hooks. |
+| `BASE_URL` | No | `http://localhost:<ACCEPTANCE_PORT>` | If set, tests use this URL and **do not** start a local server. |
+| `SKIP_ACCEPTANCE_BUILD` | No | — | Set to `1` to skip `pnpm build` before acceptance (useful if you already built). |
+| `ACCEPTANCE_DEBUG` | No | — | Set to `1` to print the acceptance server stdout/stderr. |
+| `HEADED` | No | — | Set to `1` to run Playwright in headed mode (not headless). |
+| `CI` | No | — | Set to `true` in GitHub Actions; affects tooling behavior where relevant. |
 
-## Deploy on Vercel
+## CI
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+GitHub Actions workflow: [`.github/workflows/ci.yml`](.github/workflows/ci.yml)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| Stage | What it does |
+| --- | --- |
+| **Playwright cache** | Installs dependencies and warms the Chromium browser cache for acceptance tests. |
+| **Acceptance tests** | **Cucumber** scenarios run in parallel (Playwright-backed) for three features: `admin_sessions`, `client_voting`, `live_voting_sync`. |
+| **Pull requests** | After acceptance passes, a **Docker build** (`linux/amd64`) runs as a merge gate (image is not pushed). |
+| **Push to `main` / manual dispatch** | Multi-arch **GHCR** publish (`amd64` + `arm64`), manifest tags `latest` and short commit SHA; temporary `-build` images are cleaned up afterward. |
+
+**Triggers:** `pull_request`, `push` to `main`, and `workflow_dispatch`.
+
+**Run acceptance tests locally:**
+
+```bash
+pnpm install
+pnpm run test:acceptance
+```
