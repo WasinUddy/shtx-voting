@@ -22,6 +22,39 @@ The UI is a deliberate throwback: **Windows XP**–style windows, title bars, li
 - **Audience** — Full-screen “desktop” with a voting window and score pad.
 - **Admin** — Console-style sessions list and per-session desk for teams, stage, and live score totals.
 
+## OBS browser sources
+
+Use separate **Browser Source** layers in OBS (or similar) so you can move, crop, and resize each piece. Every overlay page fills the source rectangle you give it and uses a **transparent** background outside the graphic. Typography scales with the source size (`vmin` / `clamp`), so you are not locked to 1920×1080—pick any width and height in OBS.
+
+In OBS: add a Browser Source, point it at your app URL, enable **transparent background** if your OBS version exposes that option, and set width/height to taste.
+
+| URL | Role |
+| --- | --- |
+| `/obs/frame?title=…` | Luna window frame; client area stays see-through for camera or game capture underneath. |
+| `/obs/frame?title=…&trans=true` | **Title bar only** (no window chrome). Same `title` query as above. `trans` also accepts `1` or `yes`. |
+| `/obs/plate` | On-stage team name, **running total** score, and red/green **lean** bar (room average, not the raw total). |
+| `/obs/board` | Leaderboard for all teams in the active session (sorted by score). Hidden when no team is on stage. |
+| `/obs/pop` | XP balloon for each **incoming vote** on the current team (`+2`, `-1`, etc.). Not the change in total when someone revotes. Hidden when the stage is empty. |
+
+**Live data**
+
+- `/api/obs` — SSE snapshot of session, stage, and team aggregates (plate + board).
+- `/api/obs/votes` — SSE **per vote** events for the pop (no backlog when a source connects mid-show).
+
+Plate, board, and pop render nothing when there is no in-progress session or nobody is on stage. The frame is always visible if you load it.
+
+**Example** (production host `vote.example.com`):
+
+```text
+https://vote.example.com/obs/frame?title=SHTX%20Live
+https://vote.example.com/obs/frame?title=SHTX%20Live&trans=true
+https://vote.example.com/obs/plate
+https://vote.example.com/obs/board
+https://vote.example.com/obs/pop
+```
+
+Acceptance coverage: `acceptance/features/obs_overlays.feature`.
+
 ## Development
 
 ### Prerequisites
@@ -119,7 +152,7 @@ GitHub Actions workflow: [`.github/workflows/ci.yml`](.github/workflows/ci.yml)
 | Stage | What it does |
 | --- | --- |
 | **Playwright cache** | Installs dependencies and warms the Chromium browser cache for acceptance tests. |
-| **Acceptance tests** | **Cucumber** scenarios run in parallel (Playwright-backed) for three features: `admin_sessions`, `client_voting`, `live_voting_sync`. |
+| **Acceptance tests** | **Cucumber** scenarios run in parallel (Playwright-backed) for `admin_sessions`, `client_voting`, `live_voting_sync`, and `obs_overlays`. |
 | **Pull requests** | After acceptance passes, a **Docker build** (`linux/amd64`) runs as a merge gate (image is not pushed). |
 | **Push to `main` / manual dispatch** | Multi-arch **GHCR** publish (`amd64` + `arm64`), manifest tags `latest` and short commit SHA; temporary `-build` images are cleaned up afterward. |
 
