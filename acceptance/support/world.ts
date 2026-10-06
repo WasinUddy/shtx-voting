@@ -14,6 +14,11 @@ export class CustomWorld extends World {
   voterContext!: BrowserContext;
   adminPage!: Page;
   voterPage!: Page;
+  obsContext?: BrowserContext;
+  obsFramePage?: Page;
+  obsPlatePage?: Page;
+  obsBoardPage?: Page;
+  obsPopPage?: Page;
   lastCreatedSessionName?: string;
 
   constructor(options: IWorldOptions) {
@@ -35,6 +40,12 @@ export class CustomWorld extends World {
   }
 
   async disposeBrowser(): Promise<void> {
+    await this.obsContext?.close();
+    this.obsContext = undefined;
+    this.obsFramePage = undefined;
+    this.obsPlatePage = undefined;
+    this.obsBoardPage = undefined;
+    this.obsPopPage = undefined;
     await this.adminContext?.close();
     await this.voterContext?.close();
     await this.browser?.close();
