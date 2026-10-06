@@ -1,6 +1,6 @@
 "use server";
 
-import { publishSessionScores } from "@/lib/live-events";
+import { publishObsVote, publishSessionScores } from "@/lib/live-events";
 import { getMyVoteScore, upsertVote } from "@/services/votes";
 
 export async function submitVote(
@@ -18,6 +18,7 @@ export async function submitVote(
     return result.error;
   }
 
+  publishObsVote({ teamId, score });
   await publishSessionScores(sessionId);
 }
 

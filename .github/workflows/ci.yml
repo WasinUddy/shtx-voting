@@ -10,8 +10,10 @@ on:
       - main
   workflow_dispatch:
 
+# One active run per branch. A new push, PR update, or manual run on that
+# branch cancels the run already in progress.
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ github.head_ref || github.ref_name }}
   cancel-in-progress: true
 
 permissions:
@@ -81,6 +83,7 @@ jobs:
           - admin_sessions
           - client_voting
           - live_voting_sync
+          - obs_overlays
     env:
       CI: "true"
     steps:
@@ -131,7 +134,7 @@ jobs:
   acceptance-passed:
     name: Acceptance passed
     needs: acceptance
-    if: always()
+    if: always() && !cancelled()
     runs-on: ubuntu-24.04
     steps:
       - name: Verify every feature job succeeded
@@ -286,7 +289,7 @@ jobs:
     needs:
       - prepare-image
       - push-image
-    if: always() && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    if: always() && !cancelled() && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-24.04
     steps:
       - name: Delete temporary build package

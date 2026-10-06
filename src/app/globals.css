@@ -923,3 +923,71 @@ body {
   justify-content: flex-end;
   flex-wrap: wrap;
 }
+
+/* BSOD-inspired 404 */
+.bsod {
+  flex: 1;
+  min-height: 100vh;
+  min-height: 100dvh;
+  margin: 0;
+  padding: 48px 56px;
+  box-sizing: border-box;
+  background: #0000aa;
+  color: #f0f0f0;
+  font-family: "Lucida Console", "Courier New", Courier, monospace;
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+.bsod__inner {
+  max-width: 52rem;
+}
+
+.bsod__lead {
+  margin: 0 0 1.25rem;
+}
+
+.bsod__fault {
+  margin: 0 0 1.5rem;
+  font-weight: bold;
+  letter-spacing: 0.02em;
+}
+
+.bsod__body {
+  margin: 0 0 0.75rem;
+}
+
+.bsod__body--spaced {
+  margin-bottom: 1.5rem;
+}
+
+.bsod__tech {
+  margin: 0 0 0.5rem;
+}
+
+.bsod__stop {
+  margin: 0 0 0.35rem;
+}
+
+.bsod__driver {
+  margin: 0 0 2rem;
+}
+
+.bsod__action {
+  margin: 0;
+}
+
+.bsod__link {
+  color: #f0f0f0;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.bsod__link:hover {
+  color: #fff;
+}
+
+.bsod__link:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}

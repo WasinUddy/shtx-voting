@@ -165,16 +165,19 @@ Given(
       .getByRole("button", { name: "Add" })
       .click();
     await sessionRow(this, sessionName).click();
-    await this.adminPage.getByLabel("New team name").fill(teamOne);
-    await this.adminPage
-      .locator(".xp-toolbar-form")
-      .getByRole("button", { name: "Add" })
-      .click();
-    await this.adminPage.getByLabel("New team name").fill(teamTwo);
-    await this.adminPage
-      .locator(".xp-toolbar-form")
-      .getByRole("button", { name: "Add" })
-      .click();
+    const teamsBox = this.adminPage
+      .locator(".xp-groupbox")
+      .filter({ hasText: "Teams" });
+    await teamsBox.getByLabel("New team name").fill(teamOne);
+    await teamsBox.getByRole("button", { name: "Add" }).click();
+    await expect(teamsBox.locator(".xp-listview__row", { hasText: teamOne })).toBeVisible({
+      timeout: 15_000,
+    });
+    await teamsBox.getByLabel("New team name").fill(teamTwo);
+    await teamsBox.getByRole("button", { name: "Add" }).click();
+    await expect(teamsBox.locator(".xp-listview__row", { hasText: teamTwo })).toBeVisible({
+      timeout: 15_000,
+    });
     await this.adminPage.getByRole("button", { name: "Start session" }).click();
     await expectSessionDeskInProgress(this);
   },
