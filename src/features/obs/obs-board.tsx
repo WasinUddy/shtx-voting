@@ -42,14 +42,13 @@ export function ObsBoard() {
   const rows = sortObsTeams(state.teams);
 
   return (
-    <div className="obs-root">
-      <div className="obs-board-anchor">
-        <div
-          className={`xp-window obs-board-window${exiting ? " obs-plate-window--exit" : " obs-plate-window--enter"}`}
-          data-obs="board"
-        >
-          <TitleBar title={`Scores — ${state.session.name}`} />
-          <div className="obs-board-body">
+    <div className="obs-root obs-root--fill">
+      <div
+        className={`xp-window xp-window--maximized obs-window--fill obs-board-window${exiting ? " obs-plate-window--exit" : " obs-plate-window--enter"}`}
+        data-obs="board"
+      >
+        <TitleBar title={`Scores — ${state.session.name}`} />
+        <div className="xp-client obs-board-body">
             <table className="obs-board-table">
               <thead>
                 <tr>
@@ -74,7 +73,6 @@ export function ObsBoard() {
                 ))}
               </tbody>
             </table>
-          </div>
         </div>
       </div>
     </div>

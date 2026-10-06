@@ -1,25 +1,41 @@
+html:has(.obs-root) {
+  height: 100%;
+}
+
 body:has(.obs-root) {
   background: transparent !important;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
 }
 
 .obs-root {
   position: fixed;
   inset: 0;
+  width: 100%;
+  height: 100%;
   pointer-events: none;
   overflow: hidden;
 }
 
-.obs-root--frame {
+.obs-root--fill {
   display: flex;
   align-items: stretch;
   justify-content: stretch;
 }
 
-.obs-frame-window {
+.obs-window--fill {
   flex: 1;
   display: flex;
   flex-direction: column;
   min-height: 0;
+  min-width: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.obs-frame-window {
   animation: obs-frame-open 0.35s ease-out;
 }
 
@@ -40,25 +56,25 @@ body:has(.obs-root) {
   background: transparent !important;
 }
 
-.obs-plate-anchor {
-  position: absolute;
-  right: 48px;
-  bottom: 48px;
-  width: min(420px, 42vw);
+.obs-frame-trans {
+  align-items: flex-start;
 }
 
-.obs-board-anchor {
-  position: absolute;
-  left: 48px;
-  top: 48px;
-  width: min(480px, 48vw);
+.obs-frame-trans__shell {
+  width: 100%;
+  flex-shrink: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
 }
 
-.obs-pop-anchor {
-  position: absolute;
-  left: 50%;
-  top: 38%;
-  transform: translateX(-50%);
+.obs-pop-stage {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
 }
 
 .obs-plate-window,
@@ -71,12 +87,12 @@ body:has(.obs-root) {
 
 .obs-plate-window--enter {
   animation: obs-plate-enter 0.4s cubic-bezier(0.34, 1.4, 0.64, 1);
-  transform-origin: 100% 100%;
+  transform-origin: center center;
 }
 
 .obs-plate-window--exit {
   animation: obs-plate-exit 0.25s ease-in forwards;
-  transform-origin: 100% 100%;
+  transform-origin: center center;
 }
 
 @keyframes obs-plate-enter {
@@ -102,24 +118,29 @@ body:has(.obs-root) {
 }
 
 .obs-plate-body {
-  padding: 12px 16px 14px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 0;
+  padding: 3vmin 4vmin;
   background: var(--xp-client-bg);
 }
 
 .obs-plate__name {
   font-family: var(--font-xp-title);
-  font-size: var(--xp-font-lg);
+  font-size: clamp(22px, 4.5vmin, 56px);
   font-weight: bold;
-  margin: 0 0 8px;
+  margin: 0 0 1.5vmin;
   line-height: 1.15;
 }
 
 .obs-plate__score {
   font-family: var(--font-xp-title);
-  font-size: var(--xp-font-display);
+  font-size: clamp(36px, 9vmin, 120px);
   font-weight: bold;
   line-height: 1;
-  margin: 0 0 10px;
+  margin: 0 0 2vmin;
   transition: transform 0.2s ease;
 }
 
@@ -141,7 +162,7 @@ body:has(.obs-root) {
 
 .obs-balance {
   position: relative;
-  height: 22px;
+  height: clamp(18px, 3vmin, 40px);
   border: 1px solid var(--xp-border);
   box-shadow: inset 1px 1px 2px rgba(0, 0, 0, 0.15);
   background: #fff;
@@ -182,21 +203,22 @@ body:has(.obs-root) {
 }
 
 .obs-board-body {
+  flex: 1;
+  min-height: 0;
   padding: 0;
   background: var(--xp-client-bg);
-  max-height: 70vh;
   overflow: auto;
 }
 
 .obs-board-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: var(--xp-font-md);
+  font-size: clamp(18px, 3.2vmin, 42px);
 }
 
 .obs-board-table th,
 .obs-board-table td {
-  padding: 6px 12px;
+  padding: clamp(8px, 1.5vmin, 20px) clamp(12px, 2vmin, 28px);
   text-align: left;
   border-bottom: 1px solid #c0c0c0;
 }
@@ -220,14 +242,14 @@ body:has(.obs-root) {
 .obs-balloon {
   display: flex;
   align-items: flex-start;
-  gap: 10px;
-  min-width: 200px;
-  padding: 12px 14px 14px 12px;
+  gap: clamp(8px, 1.5vmin, 16px);
+  min-width: min(40vw, 480px);
+  padding: clamp(12px, 2.5vmin, 28px);
   background: linear-gradient(180deg, #fff9e6 0%, #fff3c4 100%);
   border: 1px solid #000;
   border-radius: 8px;
   box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.35);
-  font-size: var(--xp-font-lg);
+  font-size: clamp(18px, 3.5vmin, 48px);
   animation: obs-balloon-in 0.25s ease-out;
 }
 
@@ -258,8 +280,8 @@ body:has(.obs-root) {
 
 .obs-balloon__icon {
   flex-shrink: 0;
-  width: 32px;
-  height: 32px;
+  width: clamp(28px, 5vmin, 64px);
+  height: clamp(28px, 5vmin, 64px);
   border-radius: 50%;
   background: linear-gradient(180deg, #5a9bef 0%, #316ac5 100%);
   color: #fff;
@@ -267,13 +289,13 @@ body:has(.obs-root) {
   align-items: center;
   justify-content: center;
   font-weight: bold;
-  font-size: 20px;
+  font-size: clamp(16px, 3vmin, 36px);
 }
 
 .obs-balloon__delta {
   font-family: var(--font-xp-title);
   font-weight: bold;
-  font-size: var(--xp-font-xl);
+  font-size: clamp(28px, 6vmin, 80px);
   line-height: 1.2;
 }
 

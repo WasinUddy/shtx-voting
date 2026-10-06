@@ -136,12 +136,12 @@ Then(
 );
 
 Then(
-  'the OBS pop shows delta {string}',
-  async function (this: CustomWorld, delta: string) {
+  'the OBS pop shows vote {string}',
+  async function (this: CustomWorld, vote: string) {
     const { pop: popPage } = requireObsPages(this);
     const pop = popPage.locator('[data-obs="pop"]');
     await expect(pop).toBeVisible({ timeout: 20_000 });
-    await expect(pop).toHaveAttribute("data-delta", delta);
+    await expect(pop).toHaveAttribute("data-vote", vote);
   },
 );
 

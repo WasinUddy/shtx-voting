@@ -33,11 +33,11 @@ Feature: OBS overlay browser sources
     When the audience votes score "+2"
     Then the OBS plate shows team "Team One" with score "+2" and lean "positive"
     And the OBS board row for "Team One" has score "+2" and is active
-    And the OBS pop shows delta "+2"
+    And the OBS pop shows vote "+2"
     When the OBS pop has dismissed
     And the audience votes score "-1"
     Then the OBS plate shows team "Team One" with score "-1" and lean "negative"
-    And the OBS pop shows delta "-3"
+    And the OBS pop shows vote "-1"
     When the admin opens team "Team Two" on stage
     And the audience votes score "-1"
     Then the OBS board lists teams in order: "Team One", "Team Two"

@@ -1,49 +1,84 @@
 "use client";
 
-import { formatObsDelta } from "@/features/obs/format";
-import { useObsScoreDelta } from "@/features/obs/use-obs-score-delta";
+import { formatObsScore } from "@/features/obs/format";
 import { useObsState } from "@/features/obs/use-obs-state";
-import { useEffect, useState } from "react";
+import { useObsVote } from "@/features/obs/use-obs-vote";
+import { useEffect, useRef, useState } from "react";
 import "@/features/obs/obs.css";
+
+type VisibleVote = {
+  id: number;
+  score: number;
+};
 
 export function ObsPop() {
   const { state } = useObsState();
-  const deltaState = useObsScoreDelta(state);
-  const [rendered, setRendered] = useState(deltaState);
+  const activeTeamId = state.activeTeam?.teamId ?? null;
+  const incoming = useObsVote(activeTeamId);
+  const [visible, setVisible] = useState<VisibleVote | null>(null);
   const [fading, setFading] = useState(false);
+  const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastShownIdRef = useRef(0);
 
   useEffect(() => {
-    if (deltaState) {
-      setRendered(deltaState);
-      setFading(false);
+    if (!incoming || !state.activeTeam) {
       return;
     }
-    if (rendered) {
-      setFading(true);
-      const timer = setTimeout(() => {
-        setRendered(null);
-        setFading(false);
-      }, 350);
-      return () => clearTimeout(timer);
+    if (incoming.id <= lastShownIdRef.current) {
+      return;
     }
-  }, [deltaState, rendered]);
+    lastShownIdRef.current = incoming.id;
+    setVisible({ id: incoming.id, score: incoming.score });
+    setFading(false);
 
-  if (!state.session || !state.activeTeam || !rendered) {
+    if (hideTimerRef.current) {
+      clearTimeout(hideTimerRef.current);
+    }
+    hideTimerRef.current = setTimeout(() => {
+      setFading(true);
+      hideTimerRef.current = setTimeout(() => {
+        setVisible(null);
+        setFading(false);
+        hideTimerRef.current = null;
+      }, 350);
+    }, 2800);
+  }, [incoming, state.activeTeam]);
+
+  useEffect(() => {
+    if (!state.session || !state.activeTeam) {
+      setVisible(null);
+      setFading(false);
+      if (hideTimerRef.current) {
+        clearTimeout(hideTimerRef.current);
+        hideTimerRef.current = null;
+      }
+    }
+  }, [state.session, state.activeTeam]);
+
+  useEffect(() => {
+    return () => {
+      if (hideTimerRef.current) {
+        clearTimeout(hideTimerRef.current);
+      }
+    };
+  }, []);
+
+  if (!state.session || !state.activeTeam || !visible) {
     return <div className="obs-root" />;
   }
 
   return (
-    <div className="obs-root">
-      <div className="obs-pop-anchor">
+    <div className="obs-root obs-root--fill">
+      <div className="obs-pop-stage">
         <div
           className={`obs-balloon${fading ? " obs-balloon--out" : ""}`}
           data-obs="pop"
-          data-delta={formatObsDelta(rendered.delta)}
-          key={rendered.key}
+          data-vote={formatObsScore(visible.score)}
+          key={visible.id}
         >
           <span className="obs-balloon__icon" aria-hidden>i</span>
           <span className="obs-balloon__delta">
-            {formatObsDelta(rendered.delta)}
+            {formatObsScore(visible.score)}
           </span>
           <span className="obs-balloon__close" aria-hidden>×</span>
         </div>

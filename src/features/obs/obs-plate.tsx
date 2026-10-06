@@ -68,17 +68,16 @@ export function ObsPlate() {
   const posWidth = Math.max(0, fill - 50);
 
   return (
-    <div className="obs-root">
-      <div className="obs-plate-anchor">
-        <div
-          className={`xp-window obs-plate-window${exiting ? " obs-plate-window--exit" : " obs-plate-window--enter"}`}
-          data-obs="plate"
-          data-team={displayed.name}
-          data-score={formatObsScore(displayed.totalScore)}
-          data-lean={lean}
-        >
-          <TitleBar title="On stage" />
-          <div className="obs-plate-body">
+    <div className="obs-root obs-root--fill">
+      <div
+        className={`xp-window xp-window--maximized obs-window--fill obs-plate-window${exiting ? " obs-plate-window--exit" : " obs-plate-window--enter"}`}
+        data-obs="plate"
+        data-team={displayed.name}
+        data-score={formatObsScore(displayed.totalScore)}
+        data-lean={lean}
+      >
+        <TitleBar title="On stage" />
+        <div className="xp-client obs-plate-body">
             <p className="obs-plate__name">{displayed.name}</p>
             <p
               className={`obs-plate__score${scoreBump ? " obs-plate__score--bump" : ""}`}
@@ -100,7 +99,6 @@ export function ObsPlate() {
                 />
               ) : null}
             </div>
-          </div>
         </div>
       </div>
     </div>

@@ -2,6 +2,7 @@ import type { LiveAudienceState } from "@/lib/audience-state";
 import { getLiveAudienceState } from "@/lib/audience-state";
 import type { ObsState } from "@/lib/obs-state";
 import { getObsState } from "@/lib/obs-state";
+import type { ObsVoteEvent } from "@/lib/obs-vote-types";
 import type { TeamScoreAggregate } from "@/services/votes";
 import { aggregateTeamScores } from "@/services/votes";
 
@@ -11,6 +12,8 @@ type LiveEventsStore = {
   audienceListeners: Set<Listener<LiveAudienceState>>;
   scoreListeners: Map<number, Set<Listener<SessionScoresPayload>>>;
   obsListeners: Set<Listener<ObsState>>;
+  obsVoteListeners: Set<Listener<ObsVoteEvent>>;
+  nextObsVoteId: number;
 };
 
 export type SessionScoresPayload = {
@@ -29,9 +32,16 @@ function getStore(): LiveEventsStore {
       audienceListeners: new Set(),
       scoreListeners: new Map(),
       obsListeners: new Set(),
+      obsVoteListeners: new Set(),
+      nextObsVoteId: 1,
     };
   }
-  return g[STORE_KEY];
+  const store = g[STORE_KEY]!;
+  if (!store.obsVoteListeners) {
+    store.obsVoteListeners = new Set();
+    store.nextObsVoteId = 1;
+  }
+  return store;
 }
 
 export function subscribeAudience(
@@ -82,6 +92,31 @@ export async function publishObsState(): Promise<void> {
   const payload = await getObsState();
   const store = getStore();
   for (const listener of store.obsListeners) {
+    listener(payload);
+  }
+}
+
+export function subscribeObsVotes(
+  listener: Listener<ObsVoteEvent>,
+): () => void {
+  const store = getStore();
+  store.obsVoteListeners.add(listener);
+  return () => {
+    store.obsVoteListeners.delete(listener);
+  };
+}
+
+export function publishObsVote(event: {
+  teamId: number;
+  score: number;
+}): void {
+  const store = getStore();
+  const payload: ObsVoteEvent = {
+    id: store.nextObsVoteId++,
+    teamId: event.teamId,
+    score: event.score,
+  };
+  for (const listener of store.obsVoteListeners) {
     listener(payload);
   }
 }
